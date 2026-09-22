@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="color-scheme" content="light">
+    <meta name="theme-color" content="#185443">
+    <title>Job Scout — search and application tracker</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <script src="{{ url_for('static', filename='app.js') }}" defer></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#results">Skip to jobs</a>
+    <div class="app-shell">
+      <header class="site-header">
+        <a class="wordmark" href="/" aria-label="Job Scout home"><span class="brand-mark" aria-hidden="true">JS</span><span>Job Scout</span></a>
+        <span class="local-label"><span class="status-dot" aria-hidden="true"></span>Your local workspace</span>
+      </header>
+      <main>
+        <section class="hero" aria-labelledby="page-title">
+          <div>
+            <p class="eyebrow">Less searching. More possibility.</p>
+            <h1 id="page-title">Job Scout</h1>
+            <p class="hero-subtitle">Find your next move.</p>
+            <p class="hero-description">Discover roles from official career pages, build a shortlist, and follow every application from first click to offer.</p>
+          </div>
+          <div class="scan-panel">
+            <div class="scan-heading"><span id="scan-indicator" class="scan-indicator" aria-hidden="true"></span><span id="scan-status" role="status" aria-live="polite">Connecting to Job Scout…</span></div>
+            <button id="scan-button" class="button button-primary scan-button" type="button" disabled>
+              <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M20 7v5h-5M4 17v-5h5M6.1 6.1A8 8 0 0 1 19.6 10M4.4 14a8 8 0 0 0 13.5 3.9" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              <span id="scan-button-label">Scan career pages</span>
+            </button>
+            <p id="scan-last-run" class="small muted">Checking scan history…</p>
+            <p id="scan-next-run" class="small muted">Scheduled scans run only while the app is open.</p>
+            <p id="scan-error" class="inline-error" hidden></p>
+          </div>
+        </section>
+        <div id="error-banner" class="notice notice-error" role="alert" aria-live="assertive" aria-atomic="true" hidden>
+          <div><strong>Something needs attention</strong><p id="error-message"></p></div>
+          <div class="notice-actions"><button id="retry-state" class="button button-small button-outline" type="button">Retry connection</button><button id="dismiss-error" class="icon-button" type="button" aria-label="Dismiss error">&times;</button></div>
+        </div>
+        <p id="feedback" class="feedback" role="status" aria-live="polite" aria-atomic="true"></p>
+        <noscript><p class="notice notice-error">Enable JavaScript and reload to search jobs, manage sources, and track applications.</p></noscript>
+        <section class="stats" aria-label="Job overview">
+          <div class="stat"><span class="stat-label">All discovered</span><strong id="count-total">—</strong><span class="stat-note">Across your career sources</span></div>
+          <div class="stat stat-accent"><span class="stat-label">Your matches</span><strong id="count-matches">—</strong><span class="stat-note">Based on your preferences</span></div>
+          <div class="stat"><span class="stat-label">Saved for later</span><strong id="count-saved">—</strong><span class="stat-note">Worth another look</span></div>
+          <div class="stat"><span class="stat-label">Applications</span><strong id="count-applied">—</strong><span class="stat-note">Applied through final outcome</span></div>
+        </section>
+
+        <div class="workspace">
+          <aside class="sidebar" aria-label="Search setup">
+            <section class="panel" aria-labelledby="preferences-title">
+              <div class="panel-heading"><div><p class="eyebrow">Make it yours</p><h2 id="preferences-title">Search preferences</h2></div><span class="section-number" aria-hidden="true">01</span></div>
+              <p class="section-intro">Blank filters include all jobs. Save changes to update your matches.</p>
+              <form id="preferences-form">
+                <fieldset id="preferences-fields" disabled>
+                  <legend class="sr-only">Job matching and scan settings</legend>
+                  <div class="field">
+                    <label for="keywords">Keyword phrases <span class="field-optional">optional</span></label>
+                    <input id="keywords" name="keywords" type="text" placeholder="e.g. Analyst, customer success, engineer" aria-describedby="keywords-help">
+                    <p id="keywords-help" class="field-help">Up to 5 comma-separated phrases. Any phrase can match the title or description.</p>
+                  </div>
+                  <div class="field">
+                    <label for="locations">Locations <span class="field-optional">optional</span></label>
+                    <input id="locations" name="locations" type="text" placeholder="London, New York, Bengaluru" aria-describedby="locations-help">
+                    <p id="locations-help" class="field-help">Up to 3 comma-separated locations. Any location can match.</p>
+                  </div>
+                  <div class="field">
+                    <label for="exclude-keywords">Exclude from job titles <span class="field-optional">optional</span></label>
+                    <input id="exclude-keywords" name="exclude_keywords" type="text" placeholder="Senior, director, internship" aria-describedby="exclude-help">
+                    <p id="exclude-help" class="field-help">Up to 10 comma-separated phrases to leave out.</p>
+                  </div>
+                  <label class="checkbox-field" for="remote-only"><input id="remote-only" name="remote_only" type="checkbox"><span><strong>Remote roles only</strong><span class="field-help">Use the source’s remote designation.</span></span></label>
+                  <div class="field-row">
+                    <div class="field"><label for="scan-interval">Scan interval <span class="field-optional">minutes</span></label><input id="scan-interval" name="scan_interval_minutes" type="number" min="0" max="1440" step="1" value="0" required aria-describedby="interval-help"></div>
+                    <div class="field"><label for="max-pages">Pages per query</label><input id="max-pages" name="max_pages" type="number" min="1" max="10" step="1" value="3" required aria-describedby="pages-help"></div>
+                  </div>
+                  <p id="interval-help" class="field-help">0 means manual scans; otherwise use 30–1440 minutes. Scheduled scans run only while the app is open.</p>
+                  <p id="pages-help" class="field-help">1–10 pages; default 3. Results are capped per source and query, not an exhaustive list of every opening.</p>
+                  <p id="preferences-error" class="inline-error" role="alert" hidden></p>
+                  <button id="save-preferences" class="button button-primary full-width" type="submit">Save preferences</button>
+                </fieldset>
+                <p id="preferences-save-state" class="form-status" role="status" aria-live="polite">Loading preferences…</p>
+              </form>
+            </section>
+
+            <section class="panel" aria-labelledby="sources-title">
+              <div class="panel-heading"><div><p class="eyebrow">Go to the source</p><h2 id="sources-title" tabindex="-1">Career sources</h2></div><span class="section-number" aria-hidden="true">02</span></div>
+              <p class="section-intro">Google and JPMorgan Chase are included to get you started. Only enabled sources are scanned. Disable a source to keep its job history; deleting it also removes its jobs and tracked applications.</p>
+              <p id="source-scan-note" class="source-lock-note" role="status" hidden>Source changes are paused during a scan. Your unfinished edits are kept.</p>
+              <div id="source-list" class="source-list" aria-busy="true"><p class="muted small">Loading career sources…</p></div>
+              <details id="source-form-details" class="add-source-details">
+                <summary><span id="source-form-title">Add a career source</span><span class="details-plus" aria-hidden="true">+</span></summary>
+                <form id="source-form" class="source-form">
+                  <fieldset id="source-fields" disabled>
+                    <legend class="sr-only">Career source details</legend>
+                    <div class="field"><label for="source-name">Company or source name</label><input id="source-name" name="name" type="text" placeholder="Company name" required></div>
+                    <div class="field"><label for="source-url">Career page URL</label><input id="source-url" name="url" type="url" placeholder="https://company.com/careers" required aria-describedby="source-url-help"><p id="source-url-help" class="field-help">Use an official HTTP or HTTPS career page.</p></div>
+                    <div class="field"><label for="source-kind">Page adapter</label><select id="source-kind" name="kind" aria-describedby="adapter-help"><option value="auto">Auto-detect</option><option value="google">Google Careers</option><option value="oracle">Oracle / JPMorgan Chase</option><option value="jsonld">JSON-LD JobPosting</option></select></div>
+                    <p id="adapter-help" class="field-help">Arbitrary JavaScript-heavy websites need a dedicated adapter. JSON-LD supports pages containing structured JobPosting data.</p>
+                    <p id="source-error" class="inline-error" role="alert" hidden></p>
+                    <div class="source-form-actions"><button id="save-source" class="button button-outline" type="submit">Add source</button><button id="cancel-source-edit" class="button button-quiet" type="button" hidden>Cancel</button></div>
+                  </fieldset>
+                </form>
+              </details>
+            </section>
+            <p class="sidebar-note">Job statuses and saved notes persist between scans. Notes are saved only when you choose Save notes.</p>
+          </aside>
+
+          <section id="results" class="results" aria-labelledby="results-title" tabindex="-1">
+            <div class="results-heading">
+              <div><p class="eyebrow">A little closer to what’s next</p><h2 id="results-title" tabindex="-1">Your job board</h2></div>
+              <div class="results-heading-actions">
+                <span id="results-total" class="result-count">Loading…</span>
+                <a id="export-csv" class="button button-outline button-small" href="/api/export?view=matches&amp;q=" download="job-scout-matches.csv" aria-describedby="export-help">Export CSV</a>
+              </div>
+            </div>
+            <p id="export-help" class="sr-only">Download all rows in the current view and search, not just this page. Save any unfinished notes before exporting.</p>
+            <div class="results-toolbar">
+              <div id="view-controls" class="view-controls" role="group" aria-label="Job view">
+                <button class="view-button is-active" type="button" data-view="matches" aria-pressed="true">Matches <span id="tab-matches" class="tab-count">—</span></button>
+                <button class="view-button" type="button" data-view="all" aria-pressed="false">All jobs <span id="tab-all" class="tab-count">—</span></button>
+                <button class="view-button" type="button" data-view="saved" aria-pressed="false">Saved <span id="tab-saved" class="tab-count">—</span></button>
+                <button class="view-button" type="button" data-view="applied" aria-pressed="false">Applications <span id="tab-applied" class="tab-count">—</span></button>
+              </div>
+              <div class="search-field">
+                <label class="sr-only" for="job-search">Search jobs in the current view</label>
+                <svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><circle cx="10.5" cy="10.5" r="6.5" stroke="currentColor" stroke-width="1.7"/><path d="m16 16 4.5 4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>
+                <input id="job-search" type="search" placeholder="Search jobs…" autocomplete="off" aria-controls="job-list">
+              </div>
+            </div>
+            <p id="applications-help" class="applications-help" hidden>Track Applied → Interviewing → Offer or Rejected. These statuses all stay in Applications. Change a job’s status below and keep your follow-up notes alongside it.</p>
+            <div class="results-meta"><p id="results-summary" role="status" aria-live="polite">Getting your workspace ready…</p><span class="small muted">Official company postings</span></div>
+            <div id="results-loading" class="loading-state" role="status"><span class="loading-spinner" aria-hidden="true"></span><span>Loading jobs…</span></div>
+            <div id="results-empty" class="empty-state" hidden>
+              <span class="empty-monogram" aria-hidden="true">JS</span><h3 id="empty-title">Start with a fresh scan</h3>
+              <p id="empty-description">Choose your preferences and scan your enabled career sources to discover your first jobs.</p>
+              <button id="empty-action" class="button button-outline" type="button">Run your first scan</button>
+            </div>
+            <div id="job-list" class="job-list" aria-busy="true"></div>
+            <nav id="pagination" class="pagination" aria-label="Job results pages" hidden><button id="previous-page" class="button button-outline button-small" type="button" disabled>Previous</button><p id="page-label" class="small muted"></p><button id="next-page" class="button button-outline button-small" type="button" disabled>Next</button></nav>
+          </section>
+        </div>
+      </main>
+      <footer class="site-footer"><span>Job Scout <span aria-hidden="true">/</span> A calmer way to find your next role.</span><span>Apply directly on the official posting.</span></footer>
+    </div>
+  </body>
+</html>
